@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>马来西亚历史大冒险 - 六年级历史闯关挑战</title>
+    <!-- 引入 Tailwind CSS 进行响应式与美观布局 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 FontAwesome 图标 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 引入 Tone.js 用于生成清脆的游戏音效 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap');
+        
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: linear-gradient(135deg, #1e3a8a 0%, #312e81 50%, #4c1d95 100%);
+            min-height: 100vh;
+            user-select: none;
+        }
+
+        /* 自定义卡片悬浮与动画 */
+        .game-card {
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-bounce {
+            transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
+        }
+        .btn-bounce:hover {
+            transform: translateY(-2px);
+        }
+        .btn-bounce:active {
+            transform: translateY(1px);
+        }
+
+        /* 选项按钮动效 */
+        .option-btn {
+            transition: all 0.2s ease;
+        }
+        .option-btn:hover:not(:disabled) {
+            transform: translateX(6px);
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+
+        /* 浮动得分提示动画 */
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-30px) scale(1.2); }
+        }
+        .float-score {
+            animation: floatUp 0.8s ease-out forwards;
+        }
+
+        /* 徽章闪光 */
+        @keyframes shine {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+            100% { transform: scale(1); }
+        }
+        .badge-pulse {
+            animation: shine 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="text-slate-800 flex flex-col justify-between p-3 sm:p-6">
+
+    <!-- 顶部导航栏：显示标题、玩家信息、音符开关与历史记录按钮 -->
+    <header class="max-w-4xl w-full mx-auto flex flex-wrap items-center justify-between gap-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-3 sm:px-6 text-white mb-4">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-amber-400 text-indigo-950 flex items-center justify-center font-black text-xl shadow-lg">
+                <i class="fa-solid fa-landmark"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-base sm:text-lg leading-tight">六年级历史大冒险</h1>
+                <p class="text-xs text-indigo-200">马来西亚的成立 · 州属由来 · 国家原则</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 sm:gap-3">
+            <!-- 音效开关 -->
+            <button id="soundToggleBtn" onclick="toggleSound()" class="p-2.5 rounded-xl bg-white/15 hover:bg-white/25 transition text-sm flex items-center gap-1.5" title="开关音效">
+                <i id="soundIcon" class="fa-solid fa-volume-high text-amber-300"></i>
+                <span class="hidden sm:inline">音效</span>
+            </button>
+
+            <!-- 查看游戏记录按钮（核心需求） -->
+            <button onclick="openRecordsModal()" class="px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-indigo-950 font-bold text-sm shadow-md btn-bounce flex items-center gap-2">
+                <i class="fa-solid fa-clipboard-list"></i>
+                <span>学习记录</span>
+                <span id="recordCountBadge" class="bg-indigo-900 text-white text-xs px-1.5 py-0.5 rounded-full">0</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- 主游戏容器 -->
+    <main class="max-w-4xl w-full mx-auto flex-grow flex items-center justify-center">
+        
+        <!-- 界面 1：欢迎与玩家设置页面 -->
+        <section id="screen-welcome" class="game-card w-full rounded-3xl p-6 sm:p-10 text-center">
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-100 text-indigo-700 font-bold text-xs sm:text-sm mb-4">
+                <i class="fa-solid fa-graduation-cap"></i> KSSR 修订版 · 六年级历史复习闯关
+            </div>
+            <h2 class="text-2xl sm:text-4xl font-black text-slate-900 mb-3">探索马来西亚的建国之路</h2>
+            <p class="text-slate-600 max-w-xl mx-auto text-sm sm:text-base mb-6">
+                准备好接受历史挑战了吗？输入你的名字和班级，选择挑战模式，系统将自动保存你的每一次闯关成绩与错题笔记！
+            </p>
+
+            <!-- 玩家资料输入区 -->
+            <div class="max-w-md mx-auto bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 mb-6 text-left">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">学生姓名</label>
+                        <input type="text" id="playerName" placeholder="例如：陈小明" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">班级</label>
+                        <input type="text" id="playerClass" placeholder="例如：6M / 6红" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 关卡选择卡片 -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 text-left">
+                <button onclick="startGame('unit1')" class="p-4 rounded-2xl border-2 border-blue-100 bg-blue-50/70 hover:border-blue-500 hover:bg-blue-50 transition btn-bounce flex flex-col justify-between">
+                    <div>
+                        <span class="inline-block px-2.5 py-1 rounded-lg bg-blue-600 text-white text-xs font-bold mb-2">单元一</span>
+                        <h3 class="font-bold text-slate-900 text-base">马来西亚的成立</h3>
+                        <p class="text-xs text-slate-500 mt-1">1963建国进程、功臣、葛波委员会与内外挑战</p>
+                    </div>
+                    <div class="mt-3 text-xs font-bold text-blue-600 flex items-center gap-1">
+                        开始挑战 <i class="fa-solid fa-arrow-right"></i>
+                    </div>
+                </button>
+
+                <button onclick="startGame('unit2')" class="p-4 rounded-2xl border-2 border-emerald-100 bg-emerald-50/70 hover:border-emerald-500 hover:bg-emerald-50 transition btn-bounce flex flex-col justify-between">
+                    <div>
+                        <span class="inline-block px-2.5 py-1 rounded-lg bg-emerald-600 text-white text-xs font-bold mb-2">单元二</span>
+                        <h3 class="font-bold text-slate-900 text-base">马来西亚的州属</h3>
+                        <p class="text-xs text-slate-500 mt-1">13州与联邦直辖区名称由来与历史传说</p>
+                    </div>
+                    <div class="mt-3 text-xs font-bold text-emerald-600 flex items-center gap-1">
+                        开始挑战 <i class="fa-solid fa-arrow-right"></i>
+                    </div>
+                </button>
+
+                <button onclick="startGame('unit3')" class="p-4 rounded-2xl border-2 border-purple-100 bg-purple-50/70 hover:border-purple-500 hover:bg-purple-50 transition btn-bounce flex flex-col justify-between">
+                    <div>
+                        <span class="inline-block px-2.5 py-1 rounded-lg bg-purple-600 text-white text-xs font-bold mb-2">单元三</span>
+                        <h3 class="font-bold text-slate-900 text-base">国家原则</h3>
+                        <p class="text-xs text-slate-500 mt-1">513事件背景、MAGERAN、五大原则与目标</p>
+                    </div>
+                    <div class="mt-3 text-xs font-bold text-purple-600 flex items-center gap-1">
+                        开始挑战 <i class="fa-solid fa-arrow-right"></i>
+                    </div>
+                </button>
+
+                <button onclick="startGame('all')" class="p-4 rounded-2xl border-2 border-amber-300 bg-gradient-to-br from-amber-50 to-orange-100 hover:border-amber-500 transition btn-bounce flex flex-col justify-between shadow-sm">
+                    <div>
+                        <span class="inline-block px-2.5 py-1 rounded-lg bg-amber-500 text-indigo-950 text-xs font-black mb-2">综合总复习</span>
+                        <h3 class="font-bold text-slate-900 text-base">全书大考挑战</h3>
+                        <p class="text-xs text-slate-600 mt-1">随机抽取单元一至单元三核心重点题目</p>
+                    </div>
+                    <div class="mt-3 text-xs font-black text-amber-700 flex items-center gap-1">
+                        终极闯关 <i class="fa-solid fa-fire"></i>
+                    </div>
+                </button>
+            </div>
+        </section>
+
+        <!-- 界面 2：答题闯关页面 -->
+        <section id="screen-quiz" class="hidden game-card w-full rounded-3xl p-5 sm:p-8">
+            <!-- 顶部状态栏 -->
+            <div class="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-slate-200 mb-5">
+                <div class="flex items-center gap-2">
+                    <button onclick="confirmQuit()" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold transition">
+                        <i class="fa-solid fa-arrow-left mr-1"></i>退出
+                    </button>
+                    <span id="quizUnitBadge" class="px-3 py-1 rounded-xl bg-indigo-100 text-indigo-700 text-xs font-bold">单元一</span>
+                </div>
+
+                <!-- 进度与连击 -->
+                <div class="flex items-center gap-3 sm:gap-5">
+                    <div id="comboBadge" class="hidden px-2.5 py-1 rounded-lg bg-orange-100 text-orange-600 font-black text-xs flex items-center gap-1">
+                        <i class="fa-solid fa-bolt"></i> <span id="comboCount">2</span> 连击!
+                    </div>
+                    <div class="text-sm font-bold text-slate-600">
+                        题目 <span id="qCurrent" class="text-indigo-600 font-black">1</span> / <span id="qTotal">10</span>
+                    </div>
+                    <div class="relative text-sm font-black text-amber-600 bg-amber-50 px-3 py-1 rounded-xl border border-amber-200">
+                        <i class="fa-solid fa-star mr-1"></i><span id="currentScore">0</span>
+                        <div id="floatingScoreContainer" class="absolute -top-2 right-2 pointer-events-none"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 进度条 -->
+            <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden mb-6">
+                <div id="progressBar" class="h-full bg-gradient-to-r from-indigo-500 to-purple-600 transition-all duration-300" style="width: 10%"></div>
+            </div>
+
+            <!-- 题目卡片 -->
+            <div class="mb-6">
+                <div class="flex items-center gap-2 text-xs font-bold text-slate-400 mb-2">
+                    <span id="questionTypeTag" class="px-2 py-0.5 rounded bg-slate-100 text-slate-600">选择题</span>
+                    <span id="questionTopicTag">知识点：成立马来西亚的概念</span>
+                </div>
+                <h3 id="questionText" class="text-lg sm:text-2xl font-bold text-slate-900 leading-snug">
+                    题目加载中...
+                </h3>
+            </div>
+
+            <!-- 选项容器 -->
+            <div id="optionsContainer" class="grid grid-cols-1 gap-3 mb-6">
+                <!-- 动态生成选项 -->
+            </div>
+
+            <!-- 答题解析反馈框（答完题显示） -->
+            <div id="feedbackBox" class="hidden rounded-2xl p-4 sm:p-5 mb-5 border-2 transition-all">
+                <div class="flex items-start gap-3">
+                    <div id="feedbackIcon" class="w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0 mt-0.5">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                    <div class="flex-grow">
+                        <h4 id="feedbackTitle" class="font-bold text-base mb-1">回答正确！</h4>
+                        <p id="feedbackExplanation" class="text-sm text-slate-700 leading-relaxed"></p>
+                    </div>
+                </div>
+                <div class="mt-4 flex justify-end">
+                    <button id="nextQuestionBtn" onclick="nextQuestion()" class="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md btn-bounce flex items-center gap-2">
+                        <span>下一题</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 界面 3：通关结算页面 -->
+        <section id="screen-result" class="hidden game-card w-full rounded-3xl p-6 sm:p-10 text-center">
+            <div id="resultTrophy" class="w-20 h-20 mx-auto rounded-full bg-amber-100 text-amber-500 flex items-center justify-center text-4xl mb-4 badge-pulse shadow-inner">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+            <h2 id="resultHeadline" class="text-2xl sm:text-3xl font-black text-slate-900 mb-1">太棒了，闯关完成！</h2>
+            <p id="resultPlayerInfo" class="text-sm text-slate-500 mb-6">挑战者：同学 · 单元一</p>
+
+            <!-- 核心成绩面板 -->
+            <div class="grid grid-cols-3 gap-3 max-w-lg mx-auto mb-6">
+                <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-3 sm:p-4">
+                    <div class="text-xs font-bold text-indigo-400">总得分</div>
+                    <div id="finalScore" class="text-2xl sm:text-3xl font-black text-indigo-700 mt-1">0</div>
+                </div>
+                <div class="bg-emerald-50 border border-emerald-100 rounded-2xl p-3 sm:p-4">
+                    <div class="text-xs font-bold text-emerald-500">答对题数</div>
+                    <div id="finalCorrect" class="text-2xl sm:text-3xl font-black text-emerald-700 mt-1">0/0</div>
+                </div>
+                <div class="bg-amber-50 border border-amber-100 rounded-2xl p-3 sm:p-4">
+                    <div class="text-xs font-bold text-amber-500">正确率</div>
+                    <div id="finalAccuracy" class="text-2xl sm:text-3xl font-black text-amber-600 mt-1">0%</div>
+                </div>
+            </div>
+
+            <!-- 错题回顾（如有错题） -->
+            <div id="resultWrongSection" class="hidden max-w-2xl mx-auto text-left mb-6">
+                <h4 class="font-bold text-slate-800 text-sm mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-book-open text-rose-500"></i> 本次错题复习笔记（已存入学习记录）：
+                </h4>
+                <div id="resultWrongList" class="space-y-2.5 max-h-52 overflow-y-auto pr-1">
+                    <!-- 动态插入错题 -->
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-center gap-3">
+                <button onclick="openRecordsModal()" class="px-5 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-indigo-950 font-bold text-sm shadow-md btn-bounce flex items-center gap-2">
+                    <i class="fa-solid fa-clipboard-check"></i> 查看所有历史记录
+                </button>
+                <button onclick="restartSameMode()" class="px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md btn-bounce flex items-center gap-2">
+                    <i class="fa-solid fa-rotate-right"></i> 再挑战一次
+                </button>
+                <button onclick="goHome()" class="px-5 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm btn-bounce">
+                    返回主页
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="max-w-4xl w-full mx-auto text-center text-indigo-200/70 text-xs mt-4">
+        基于六年级历史课程纲要设计 · 自动保存学习进度与成绩记录
+    </footer>
+
+    <!-- ========================================== -->
+    <!-- 弹窗 1：学习记录与成绩看板（满足用户查看记录需求） -->
+    <!-- ========================================== -->
+    <div id="recordsModal" class="hidden fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6">
+        <div class="bg-white w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <!-- 弹窗头部 -->
+            <div class="bg-indigo-900 text-white px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <i class="fa-solid fa-chart-line text-amber-400 text-xl"></i>
+                    <div>
+                        <h3 class="font-bold text-lg">学生学习与答题记录看板</h3>
+                        <p class="text-xs text-indigo-200">完整记录每次闯关得分、正确率及错题详情</p>
+                    </div>
+                </div>
+                <button onclick="closeRecordsModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- 统计概览栏 -->
+            <div class="grid grid-cols-3 gap-3 p-4 bg-slate-50 border-b border-slate-200 text-center">
+                <div>
+                    <span class="text-xs text-slate-500 font-bold">累计挑战次数</span>
+                    <p id="statTotalGames" class="text-xl font-black text-indigo-700">0 次</p>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-500 font-bold">最高得分记录</span>
+                    <p id="statHighScore" class="text-xl font-black text-amber-600">0 分</p>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-500 font-bold">平均正确率</span>
+                    <p id="statAvgAccuracy" class="text-xl font-black text-emerald-600">0%</p>
+                </div>
+            </div>
+
+            <!-- 记录列表区域 -->
+            <div id="recordsListContainer" class="p-4 sm:p-6 overflow-y-auto flex-grow space-y-3">
+                <!-- 动态渲染历史记录卡片 -->
+            </div>
+
+            <!-- 弹窗底部操作栏 -->
+            <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                    <button onclick="copyRecordsReport()" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-copy"></i> 复制成绩报告
+                    </button>
+                    <button onclick="askClearRecords()" class="px-3.5 py-2 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-bold transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-trash-can"></i> 清空记录
+                    </button>
+                </div>
+                <button onclick="closeRecordsModal()" class="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold">
+                    关闭窗口
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 自定义确认对话框（替代 confirm/alert） -->
+    <div id="customDialog" class="hidden fixed inset-0 z-[60] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white max-w-sm w-full rounded-2xl p-6 shadow-2xl text-center">
+            <div id="dialogIcon" class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 mx-auto flex items-center justify-center text-xl mb-3">
+                <i class="fa-solid fa-circle-exclamation"></i>
+            </div>
+            <h4 id="dialogTitle" class="font-bold text-lg text-slate-900 mb-1">提示</h4>
+            <p id="dialogMessage" class="text-sm text-slate-600 mb-5">确定要执行此操作吗？</p>
+            <div id="dialogButtons" class="flex justify-center gap-3">
+                <!-- 动态按钮 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 轻提示 Toast -->
+    <div id="toastMsg" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-[70] bg-slate-900 text-white px-4 py-2.5 rounded-xl text-sm font-medium shadow-xl opacity-0 pointer-events-none transition-opacity duration-300">
+        提示信息
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. 完整六年级历史题库（严格依据上传的PDF内容编写）
+        // ==========================================
+        const QUESTION_BANK = [
+            // --- 单元一：马来西亚的成立 ---
+            {
+                id: 'u1_1',
+                unit: 'unit1',
+                unitName: '单元一：马来西亚的成立',
+                type: '概念来源',
+                question: '1887年，哪位英国北婆罗洲公司董事建议把砂拉越、沙巴、马来半岛和海峡殖民地合并起来？',
+                options: ['布拉西勋爵 (Lord Brassey)', '葛波勋爵 (Lord Cobbold)', '马尔科姆·麦克唐纳 (Malcolm MacDonald)', '大卫·华德斯顿'],
+                answer: 0,
+                explanation: '1887年，英国北婆罗洲公司董事布拉西勋爵（Lord Brassey）最早建议将砂拉越、沙巴、马来半岛和海峡殖民地合并。'
+            },
+            {
+                id: 'u1_2',
+                unit: 'unit1',
+                unitName: '单元一：马来西亚的成立',
+                type: '概念来源',
+                question: '1938年，本地领袖依布拉欣耶谷和哈仑阿米努拉昔提出了什么概念？',
+                options: ['“大马来由” (Melayu Raya)', '马来西亚忠诚委员会', '东南亚共同体', '北婆罗洲联邦'],
+                answer: 0,
+                explanation: '1938年，依布拉欣耶谷与哈仑阿米努拉昔提出“大马来由”（Melayu Raya）概念，范围包括马来半岛、新加坡、加里曼丹、菲律宾群岛及印尼群岛。'
+            },
+            {
+                id: 'u1_3',
+                unit: 'unit1',
+                unitName: '单元一：马来西亚的成立',
+                type: '成立原因',
+                question: '为什么“平衡族群结构”是成立马来西亚的主要原因之一？',
+                options: [
+                    '只合并新加坡与马来亚联合邦会导致族群结构不平衡，加入砂沙可平衡结构',
+                    '为了减少砂拉越与沙巴的人口数量',
+                    '为了让英国殖民政府继续管理新加坡',
+                    '因为汶莱要求改变当地的族群比例'
+                ],
+                answer: 0,
+                explanation: '若只合并新加坡与马来亚联合邦将导致族群结构不平衡，因此合并马来亚联合邦、砂拉越、沙巴能有效平衡族群结构。'
+            },
+            {
+                id: 'u1_4',
+                unit: 'unit1',
+                unitName: '单元一：马来西亚的成立',
+                type: '成立进程',
+                question: '1961年5月27日，东姑阿都拉曼在哪里正式提出成立马来西亚的概念？',
+                options: ['新加坡艾德菲 (Adelphi) 酒店', '伦敦马尔伯勒大楼', '吉隆坡默迪卡体育场', '砂拉越古晋市政厅'],
+                answer: 0,
+                explanation: '1961年5月27日，东姑阿都拉曼在新加坡艾德菲（Adelphi）酒店的记者会上正式提出成立马来西亚的概念。'
+            },
+            {
+                id: 'u1_5',
+                unit: 'unit1',
+                unitName: '单元一：马来西亚的成立',
+                type: '成立进程',
+                question: '1962年成立的“葛波委员会”(Suruhanjaya Cobbold) 的主要任务是什么？',
+                options: [
+                    '调查并收集砂拉越与沙巴人民对成立马来西亚的民意',
+                    '制定保障新加坡经济利益的宪法草案',
+                    '代表联合国核实菲律宾对沙巴的领土诉求',
+                    '在伦敦签署《马来西亚协定》'
+                ],
+                answer: 0,
+                explanation: '葛波委员会于1962年1月17日成立，负责调查砂拉越与沙巴民意，调查结果显示三分之二人民支持成立马来西亚。'
+            },
+            {
+                id: 'u1_6',
+                unit: 'unit1',
+                unitName: '单元一：马来西亚的成立',
+                type: '成立进程',
+                question: '《马来西亚协定》于1963年7月9日在哪个地点签署？',
+                options: ['伦敦的马尔伯勒大楼 (Marlborough House)', '新加坡市政厅', '吉隆坡国家皇宫', '沙巴亚庇'],
+                answer: 0,
+                explanation: '1963年7月9日，各方代表在英国伦敦的马尔伯勒大楼（Marlborough House）正式签署《马来西亚协定》。'
+            },
+            {
+                id: 'u1_7',
+                unit: 'unit1',
+                unitName: '单元一：马来西亚的成立',
+                type: '建国功臣',
+                question: '哪位领袖是卡达山民族统一机构（UNKO）领袖，并倡议成立马来西亚忠诚委员会（JSKM）？',
+                options: ['敦莫哈末弗亚史蒂芬 (Donald Stephens)', '敦天猛公朱加巴里恩', '丹斯里王保尼', '敦善班丹'],
+                answer: 0,
+                explanation: '敦莫哈末弗亚史蒂芬（Donald Stephens）是民统（UNKO）领袖，他倡议成立马来西亚忠诚委员会（JSKM）以推动马来西亚成立。'
+            },
+            {
+                id: 'u1_8',
+                unit: 'unit1',
+                unitName: '单元一：马来西亚的成立',
+                type: '建国功臣',
+                question: '丹斯里王保尼是哪一个政党的领袖，并担任葛波委员会中马来亚联合邦的代表？',
+                options: ['马华公会 (MCA)', '巫统 (UMNO)', '马来亚印度国大党 (MIC)', '砂拉越国民党 (SNAP)'],
+                answer: 0,
+                explanation: '丹斯里王保尼是马华公会领袖，作为葛波委员会马来亚联合邦的代表，负责调查砂拉越和沙巴人民的意愿。'
+            },
+            {
+                id: 'u1_9',
+                unit: 'unit1',
+                unitName: '单元一：马来西亚的成立',
+                type: '参组各邦',
+                question: '下列哪个地区在1963年参组马来西亚，但随后在1965年退出马来西亚？',
+                options: ['新加坡', '汶莱', '砂拉越', '沙巴'],
+                answer: 0,
+                explanation: '新加坡于1963年9月16日参组马来西亚，但在1965年退出马来西亚；而汶莱则是在成立前拒绝加入。'
+            },
+            {
+                id: 'u1_10',
+                unit: 'unit1',
+                unitName: '单元一：马来西亚的成立',
+                type: '成立挑战',
+                question: '在成立马来西亚的过程中，哪两个邻国曾对马来西亚采取反对或对抗态度？',
+                options: ['印度尼西亚与菲律宾', '泰国与汶莱', '新加坡与印度尼西亚', '菲律宾与越南'],
+                answer: 0,
+                explanation: '印度尼西亚在1963至1966年间采取“对抗政策”（Konfrontasi），而菲律宾则控诉沙巴为其领土的一部分。'
+            },
+
+            // --- 单元二：马来西亚的州属 ---
+            {
+                id: 'u2_1',
+                unit: 'unit2',
+                unitName: '单元二：马来西亚的州属',
+                type: '州属名称由来',
+                question: '玻璃市（Perlis）的名称相传源自暹罗文“prow-lowy”，它的意思是什么？',
+                options: ['漂流的椰子', '捕捉大象的陷阱', '银灿灿的鱼', '商人汇集的市场'],
+                answer: 0,
+                explanation: '玻璃市相传源自暹罗文“prow-lowy”（漂流的椰子），另一说法源自马来文“peroleh”（获得）。'
+            },
+            {
+                id: 'u2_2',
+                unit: 'unit2',
+                unitName: '单元二：马来西亚的州属',
+                type: '州属名称由来',
+                question: '吉打（Kedah）的名称源自阿拉伯语“Qadah”，在阿拉伯语中是什么意思？',
+                options: ['一种高脚玻璃杯', '价值昂贵的珠宝', '船只停泊的港口', '明亮的光芒'],
+                answer: 0,
+                explanation: '“Qadah”在阿拉伯语中意指阿拉伯商人在马来世界兜售的一种高脚玻璃杯；另外“Kheddah”意为捕捉大象的陷阱。'
+            },
+            {
+                id: 'u2_3',
+                unit: 'unit2',
+                unitName: '单元二：马来西亚的州属',
+                type: '州属名称由来',
+                question: '森美兰（Negeri Sembilan）在1773年由九个小州联合组成，其中的“negeri”一词源自哪种语言？',
+                options: ['米南加保语的“nagari”', '葡萄牙语的“cerava”', '淡米尔文的“kadaram”', '暹罗文的“prow-lowy”'],
+                answer: 0,
+                explanation: '森美兰（Negeri Sembilan）的“negeri”一词源自米南加保语的“nagari”，意指九个小州联合组成。'
+            },
+            {
+                id: 'u2_4',
+                unit: 'unit2',
+                unitName: '单元二：马来西亚的州属',
+                type: '州属名称由来',
+                question: '根据阿拉伯历史资料，马六甲（Melaka）源自阿拉伯语“Malakat”，其含义是什么？',
+                options: ['商人汇集的市场', '银灿灿的锡米', '美丽的彩虹', '盛产香蕉的海岸'],
+                answer: 0,
+                explanation: '根据阿拉伯资料，马六甲源自“Malakat”，意指商人汇集的市场；同时也与拜里米苏拉休息的马六甲树有关。'
+            },
+            {
+                id: 'u2_5',
+                unit: 'unit2',
+                unitName: '单元二：马来西亚的州属',
+                type: '州属名称由来',
+                question: '柔佛（Johor）的名称源自阿拉伯语“Jauhar”，意思是？',
+                options: ['价值昂贵的珠宝', '胜利或到达巅峰', '河口堆满泥巴', '野生白千树'],
+                answer: 0,
+                explanation: '柔佛源自阿拉伯语“Jauhar”（价值昂贵的珠宝），在《马来纪年》中也被称为乌绒丹纳（Ujong Tanah）。'
+            },
+            {
+                id: 'u2_6',
+                unit: 'unit2',
+                unitName: '单元二：马来西亚的州属',
+                type: '州属名称由来',
+                question: '登嘉楼（Terengganu）的名称据说源自“taring anu”的发音，这与在杜蓉岛发现的什么有关？',
+                options: ['象牙或其他野兽的巨大獠牙', '门塘高树', '银灿灿的鱼群', '高脚玻璃杯'],
+                answer: 0,
+                explanation: '登嘉楼的名称据说源自“taring anu”，意指在杜蓉岛（Pulau Duyong）发现的象牙或其他野兽的巨大獠牙。'
+            },
+            {
+                id: 'u2_7',
+                unit: 'unit2',
+                unitName: '单元二：马来西亚的州属',
+                type: '州属名称由来',
+                question: '砂拉越（Sarawak）的名称据说源自葡萄牙语“cerava”，指的是什么矿物？',
+                options: ['锑矿', '锡米', '黄金', '石油'],
+                answer: 0,
+                explanation: '砂拉越的名称与原名双溪佘拉的砂拉越河有关，也源自葡萄牙语“cerava”，意指锑矿。'
+            },
+            {
+                id: 'u2_8',
+                unit: 'unit2',
+                unitName: '单元二：马来西亚的州属',
+                type: '联邦直辖区',
+                question: '联邦直辖区“布特拉再也”（Putrajaya）的名称是为了纪念哪位历史人物？',
+                options: ['独立之父东姑阿都拉曼布特拉', '第二任首相敦阿都拉萨', '马六甲王朝创始者拜里米苏拉', '葛波勋爵'],
+                answer: 0,
+                explanation: '布特拉再也（Putrajaya）源自独立之父东姑阿都拉曼布特拉，“jaya”的意思是胜利或者到达巅峰。'
+            },
+
+            // --- 单元三：国家原则 ---
+            {
+                id: 'u3_1',
+                unit: 'unit3',
+                unitName: '单元三：国家原则',
+                type: '历史背景',
+                question: '国家原则（Rukun Negara）是在哪一天正式颁布的？',
+                options: ['1970年8月31日（独立13周年庆典）', '1963年9月16日（马来西亚日）', '1957年8月31日（马来亚独立日）', '1969年5月13日'],
+                answer: 0,
+                explanation: '1970年8月31日，也就是马来西亚独立13周年庆典当天，首相正式颁布了国家原则（Rukun Negara）。'
+            },
+            {
+                id: 'u3_2',
+                unit: 'unit3',
+                unitName: '单元三：国家原则',
+                type: '历史背景',
+                question: '1969年5月13日发生种族冲突事件后，政府成立了什么机构来接管国家治理并恢复安定？',
+                options: ['国家行动理事会 (MAGERAN)', '马来西亚忠诚委员会 (JSKM)', '跨政府委员会 (JAK)', '葛波委员会'],
+                answer: 0,
+                explanation: '513事件发生后，政府成立了国家行动理事会（MAGERAN）接管国家治理，随后在国家协商理事会（MAPEN）建议下制定国家原则。'
+            },
+            {
+                id: 'u3_3',
+                unit: 'unit3',
+                unitName: '单元三：国家原则',
+                type: '制定原因',
+                question: '下列哪一项是当年制定国家原则（Rukun Negara）的社会原因？',
+                options: [
+                    '各族经济地位差距、居住地区分化以及政治理念不同',
+                    '为了加入联合国安全理事会',
+                    '为了应对菲律宾对沙巴的领土要求',
+                    '因为马来西亚即将迁都至布特拉再也'
+                ],
+                answer: 0,
+                explanation: '制定国家原则的三大社会现实原因包括：1. 经济地位的差距；2. 居住地区的分化；3. 政治理念的不同。'
+            },
+            {
+                id: 'u3_4',
+                unit: 'unit3',
+                unitName: '单元三：国家原则',
+                type: '五大原则',
+                question: '国家原则的第三条原则“Keluhuran Perlembagaan”对应的中文是什么？',
+                options: ['维护宪法', '尊崇法治', '忠于君国', '培养德行'],
+                answer: 0,
+                explanation: '国家原则五大原则顺序为：1.信奉上苍 2.忠于君国 3.维护宪法（Keluhuran Perlembagaan）4.尊崇法治 5.培养德行。'
+            },
+            {
+                id: 'u3_5',
+                unit: 'unit3',
+                unitName: '单元三：国家原则',
+                type: '五大原则',
+                question: '“强调人人平等，没有人可以凌驾在法律之上”，这体现了哪一条国家原则？',
+                options: ['尊崇法治 (Kedaulatan Undang-undang)', '信奉上苍 (Kepercayaan kepada Tuhan)', '忠于君国 (Kesetiaan kepada Raja dan Negara)', '培养德行 (Kesopanan dan Kesusilaan)'],
+                answer: 0,
+                explanation: '“尊崇法治”（Kedaulatan Undang-undang）强调法律面前人人平等，没有人可以凌驾在法律之上。'
+            },
+            {
+                id: 'u3_6',
+                unit: 'unit3',
+                unitName: '单元三：国家原则',
+                type: '五大原则',
+                question: '国家原则的第五条“培养德行”（Kesopanan dan Kesusilaan）主要提倡什么价值观？',
+                options: [
+                    '礼貌、互相尊重和文明的行为，建立和谐人际关系',
+                    '巩固君主立宪制度',
+                    '宪法是国家的最高法律',
+                    '通过宗教信仰凝聚人民'
+                ],
+                answer: 0,
+                explanation: '“培养德行”提倡礼貌、互相尊重与文明行为，弘扬高尚道德价值观以促进社会团结。'
+            }
+        ];
+
+        // ==========================================
+        // 2. 游戏状态与本地记录存储管理
+        // ==========================================
+        const STORAGE_KEY = 'my_std6_history_records_v1';
+        let gameRecords = []; // 内存与本地持久化的记录数组
+
+        let currentState = {
+            mode: 'all',
+            questions: [],
+            currentIndex: 0,
+            score: 0,
+            correctCount: 0,
+            combo: 0,
+            wrongList: [],
+            soundEnabled: true,
+            answeredCurrent: false
+        };
+
+        // 页面加载时初始化记录
+        window.addEventListener('DOMContentLoaded', () => {
+            loadRecords();
+            updateRecordBadge();
+        });
+
+        // 读取历史记录（带异常捕获）
+        function loadRecords() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    gameRecords = JSON.parse(raw);
+                }
+            } catch (e) {
+                console.warn('读取记录失败，使用内存模式', e);
+                gameRecords = [];
+            }
+        }
+
+        // 保存历史记录
+        function saveRecords() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(gameRecords));
+            } catch (e) {
+                console.warn('保存记录异常', e);
+            }
+            updateRecordBadge();
+        }
+
+        function updateRecordBadge() {
+            const badge = document.getElementById('recordCountBadge');
+            if (badge) badge.textContent = gameRecords.length;
+        }
+
+        // ==========================================
+        // 3. Tone.js 网页合成音效系统
+        // ==========================================
+        let synth = null;
+        function playSound(type) {
+            if (!currentState.soundEnabled) return;
+            try {
+                if (!synth) {
+                    synth = new Tone.PolySynth(Tone.Synth).toDestination();
+                    synth.volume.value = -8;
+                }
+                if (Tone.context.state !== 'running') {
+                    Tone.start();
+                }
+                const now = Tone.now();
+                if (type === 'correct') {
+                    synth.triggerAttackRelease(['C5', 'E5', 'G5'], '16n', now);
+                } else if (type === 'wrong') {
+                    synth.triggerAttackRelease(['C3', 'Eb3'], '8n', now);
+                } else if (type === 'win') {
+                    synth.triggerAttackRelease('C5', '16n', now);
+                    synth.triggerAttackRelease('E5', '16n', now + 0.1);
+                    synth.triggerAttackRelease('G5', '16n', now + 0.2);
+                    synth.triggerAttackRelease('C6', '4n', now + 0.3);
+                } else if (type === 'click') {
+                    synth.triggerAttackRelease('A4', '32n', now);
+                }
+            } catch (err) {
+                // 忽略音频上下文限制
+            }
+        }
+
+        function toggleSound() {
+            currentState.soundEnabled = !currentState.soundEnabled;
+            const icon = document.getElementById('soundIcon');
+            if (currentState.soundEnabled) {
+                icon.className = 'fa-solid fa-volume-high text-amber-300';
+                playSound('click');
+                showToast('已开启游戏音效');
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark text-slate-400';
+                showToast('已静音');
+            }
+        }
+
+        // ==========================================
+        // 4. 游戏核心逻辑流程
+        // ==========================================
+        function shuffleArray(arr) {
+            const copy = [...arr];
+            for (let i = copy.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [copy[i], copy[j]] = [copy[j], copy[i]];
+            }
+            return copy;
+        }
+
+        function startGame(mode) {
+            playSound('click');
+            currentState.mode = mode;
+            
+            // 筛选题目
+            let pool = [];
+            if (mode === 'all') {
+                pool = shuffleArray(QUESTION_BANK).slice(0, 12); // 总复习抽12题
+            } else {
+                pool = shuffleArray(QUESTION_BANK.filter(q => q.unit === mode));
+            }
+
+            // 为每道题随机打乱选项顺序并追踪正确答案的新索引
+            currentState.questions = pool.map(q => {
+                const correctText = q.options[q.answer];
+                const shuffledOpts = shuffleArray(q.options);
+                return {
+                    ...q,
+                    shuffledOptions: shuffledOpts,
+                    correctIndex: shuffledOpts.indexOf(correctText)
+                };
+            });
+
+            currentState.currentIndex = 0;
+            currentState.score = 0;
+            currentState.correctCount = 0;
+            currentState.combo = 0;
+            currentState.wrongList = [];
+            currentState.answeredCurrent = false;
+
+            // 切换界面
+            switchScreen('screen-quiz');
+            renderQuestion();
+        }
+
+        function switchScreen(screenId) {
+            ['screen-welcome', 'screen-quiz', 'screen-result'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+
+        function renderQuestion() {
+            const q = currentState.questions[currentState.currentIndex];
+            const total = currentState.questions.length;
+            const currentNum = currentState.currentIndex + 1;
+
+            currentState.answeredCurrent = false;
+
+            // 更新顶部数据
+            document.getElementById('quizUnitBadge').textContent = q.unitName;
+            document.getElementById('qCurrent').textContent = currentNum;
+            document.getElementById('qTotal').textContent = total;
+            document.getElementById('currentScore').textContent = currentState.score;
+            document.getElementById('progressBar').style.width = `${(currentNum / total) * 100}%`;
+
+            // 更新连击徽章
+            const comboBadge = document.getElementById('comboBadge');
+            if (currentState.combo >= 2) {
+                comboBadge.classList.remove('hidden');
+                document.getElementById('comboCount').textContent = currentState.combo;
+            } else {
+                comboBadge.classList.add('hidden');
+            }
+
+            // 更新题干
+            document.getElementById('questionTypeTag').textContent = q.type;
+            document.getElementById('questionTopicTag').textContent = `历史重点考验`;
+            document.getElementById('questionText').textContent = q.question;
+
+            // 隐藏反馈框
+            document.getElementById('feedbackBox').classList.add('hidden');
+
+            // 渲染选项
+            const container = document.getElementById('optionsContainer');
+            container.innerHTML = '';
+            const letters = ['A', 'B', 'C', 'D'];
+
+            q.shuffledOptions.forEach((optText, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn w-full text-left p-4 rounded-2xl border-2 border-slate-200 bg-white flex items-center gap-3.5 font-medium text-slate-800 shadow-xs';
+                btn.innerHTML = `
+                    <span class="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 font-black text-sm flex items-center justify-center shrink-0 transition-colors">${letters[idx]}</span>
+                    <span class="text-sm sm:text-base leading-snug">${optText}</span>
+                `;
+                btn.onclick = () => handleAnswer(idx, btn);
+                container.appendChild(btn);
+            });
+        }
+
+        function handleAnswer(selectedIndex, clickedBtn) {
+            if (currentState.answeredCurrent) return;
+            currentState.answeredCurrent = true;
+
+            const q = currentState.questions[currentState.currentIndex];
+            const isCorrect = selectedIndex === q.correctIndex;
+            const optionButtons = document.querySelectorAll('#optionsContainer button');
+
+            // 禁用所有选项并高亮正误
+            optionButtons.forEach((btn, idx) => {
+                btn.disabled = true;
+                const badge = btn.querySelector('span:first-child');
+                if (idx === q.correctIndex) {
+                    btn.classList.remove('border-slate-200', 'bg-white');
+                    btn.classList.add('border-emerald-500', 'bg-emerald-50', 'text-emerald-900');
+                    badge.classList.remove('bg-slate-100', 'text-slate-600');
+                    badge.classList.add('bg-emerald-500', 'text-white');
+                } else if (idx === selectedIndex && !isCorrect) {
+                    btn.classList.remove('border-slate-200', 'bg-white');
+                    btn.classList.add('border-rose-500', 'bg-rose-50', 'text-rose-900');
+                    badge.classList.remove('bg-slate-100', 'text-slate-600');
+                    badge.classList.add('bg-rose-500', 'text-white');
+                } else {
+                    btn.classList.add('opacity-55');
+                }
+            });
+
+            // 计分与反馈
+            const feedbackBox = document.getElementById('feedbackBox');
+            const feedbackIcon = document.getElementById('feedbackIcon');
+            const feedbackTitle = document.getElementById('feedbackTitle');
+            const feedbackExp = document.getElementById('feedbackExplanation');
+
+            feedbackBox.classList.remove('hidden', 'border-emerald-200', 'bg-emerald-50/70', 'border-rose-200', 'bg-rose-50/70');
+
+            if (isCorrect) {
+                playSound('correct');
+                currentState.combo++;
+                currentState.correctCount++;
+                const bonus = (currentState.combo - 1) * 20;
+                const gained = 100 + bonus;
+                currentState.score += gained;
+
+                document.getElementById('currentScore').textContent = currentState.score;
+                showFloatingScore(`+${gained}`);
+
+                feedbackBox.classList.add('border-emerald-300', 'bg-emerald-50/80');
+                feedbackIcon.className = 'w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white shrink-0 mt-0.5';
+                feedbackIcon.innerHTML = '<i class="fa-solid fa-check"></i>';
+                feedbackTitle.className = 'font-bold text-base mb-1 text-emerald-800';
+                feedbackTitle.textContent = currentState.combo >= 2 ? `回答正确！触发 ${currentState.combo} 连击 (+${gained}分)` : `回答正确！(+${gained}分)`;
+            } else {
+                playSound('wrong');
+                currentState.combo = 0;
+
+                // 记录错题
+                currentState.wrongList.push({
+                    question: q.question,
+                    userAnswer: q.shuffledOptions[selectedIndex],
+                    correctAnswer: q.shuffledOptions[q.correctIndex],
+                    explanation: q.explanation
+                });
+
+                feedbackBox.classList.add('border-rose-300', 'bg-rose-50/80');
+                feedbackIcon.className = 'w-8 h-8 rounded-full bg-rose-500 flex items-center justify-center text-white shrink-0 mt-0.5';
+                feedbackIcon.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                feedbackTitle.className = 'font-bold text-base mb-1 text-rose-800';
+                feedbackTitle.textContent = `答错啦！正确答案是：${q.shuffledOptions[q.correctIndex]}`;
+            }
+
+            feedbackExp.textContent = q.explanation;
+
+            // 最后一题按钮文字调整
+            const nextBtnSpan = document.querySelector('#nextQuestionBtn span');
+            if (currentState.currentIndex === currentState.questions.length - 1) {
+                nextBtnSpan.textContent = '查看成绩与保存记录';
+            } else {
+                nextBtnSpan.textContent = '下一题';
+            }
+        }
+
+        function showFloatingScore(text) {
+            const container = document.getElementById('floatingScoreContainer');
+            const el = document.createElement('span');
+            el.className = 'float-score inline-block text-emerald-600 font-black text-sm';
+            el.textContent = text;
+            container.appendChild(el);
+            setTimeout(() => el.remove(), 850);
+        }
+
+        function nextQuestion() {
+            playSound('click');
+            if (currentState.currentIndex < currentState.questions.length - 1) {
+                currentState.currentIndex++;
+                renderQuestion();
+            } else {
+                finishGame();
+            }
+        }
+
+        // ==========================================
+        // 5. 游戏结算与自动写入记录
+        // ==========================================
+        function finishGame() {
+            playSound('win');
+            const total = currentState.questions.length;
+            const accuracy = Math.round((currentState.correctCount / total) * 100);
+            const playerName = document.getElementById('playerName').value.trim() || '匿名小历史学家';
+            const playerClass = document.getElementById('playerClass').value.trim() || '六年级';
+
+            const modeNames = {
+                'unit1': '单元一：马来西亚的成立',
+                'unit2': '单元二：马来西亚的州属',
+                'unit3': '单元三：国家原则',
+                'all': '综合总复习挑战'
+            };
+
+            // 构造记录对象
+            const newRecord = {
+                id: Date.now(),
+                timestamp: new Date().toLocaleString('zh-CN', { hour12: false }),
+                playerName: playerName,
+                playerClass: playerClass,
+                modeName: modeNames[currentState.mode],
+                score: currentState.score,
+                correctCount: currentState.correctCount,
+                totalCount: total,
+                accuracy: accuracy,
+                wrongList: currentState.wrongList
+            };
+
+            // 插入到记录最前面并保存
+            gameRecords.unshift(newRecord);
+            saveRecords();
+
+            // 渲染结算界面
+            document.getElementById('resultPlayerInfo').textContent = `挑战者：${playerName}（${playerClass}） · ${modeNames[currentState.mode]}`;
+            document.getElementById('finalScore').textContent = currentState.score;
+            document.getElementById('finalCorrect').textContent = `${currentState.correctCount}/${total}`;
+            document.getElementById('finalAccuracy').textContent = `${accuracy}%`;
+
+            const headline = document.getElementById('resultHeadline');
+            if (accuracy === 100) headline.textContent = '满分通关！你是历史小博士！';
+            else if (accuracy >= 80) headline.textContent = '成绩优异！继续保持！';
+            else if (accuracy >= 60) headline.textContent = '顺利过关！再复习一下错题会更棒！';
+            else headline.textContent = '加油！多看看错题解析再来挑战！';
+
+            // 渲染本次错题
+            const wrongSection = document.getElementById('resultWrongSection');
+            const wrongListEl = document.getElementById('resultWrongList');
+            if (currentState.wrongList.length > 0) {
+                wrongSection.classList.remove('hidden');
+                wrongListEl.innerHTML = currentState.wrongList.map((w, i) => `
+                    <div class="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs sm:text-sm">
+                        <p class="font-bold text-slate-800 mb-1">${i + 1}. ${w.question}</p>
+                        <p class="text-rose-600"><i class="fa-solid fa-xmark mr-1"></i>你的选择：${w.userAnswer}</p>
+                        <p class="text-emerald-700 font-bold"><i class="fa-solid fa-check mr-1"></i>正确答案：${w.correctAnswer}</p>
+                        <p class="text-slate-600 mt-1 text-xs bg-white/80 p-2 rounded-lg">💡 解析：${w.explanation}</p>
+                    </div>
+                `).join('');
+            } else {
+                wrongSection.classList.add('hidden');
+            }
+
+            switchScreen('screen-result');
+            showToast('✅ 成绩与答题记录已自动保存！');
+        }
+
+        function restartSameMode() {
+            startGame(currentState.mode);
+        }
+
+        function goHome() {
+            playSound('click');
+            switchScreen('screen-welcome');
+        }
+
+        function confirmQuit() {
+            showCustomDialog(
+                '确定要退出当前闯关吗？',
+                '退出后本次答题进度将不会被保存到学习记录中。',
+                [
+                    { text: '继续答题', class: 'bg-slate-200 text-slate-800', action: closeCustomDialog },
+                    { text: '确定退出', class: 'bg-rose-600 text-white', action: () => { closeCustomDialog(); goHome(); } }
+                ]
+            );
+        }
+
+        // ==========================================
+        // 6. 学习记录看板弹窗功能
+        // ==========================================
+        function openRecordsModal() {
+            playSound('click');
+            renderRecordsModal();
+            document.getElementById('recordsModal').classList.remove('hidden');
+        }
+
+        function closeRecordsModal() {
+            document.getElementById('recordsModal').classList.add('hidden');
+        }
+
+        function renderRecordsModal() {
+            const container = document.getElementById('recordsListContainer');
+            const totalGames = gameRecords.length;
+            
+            document.getElementById('statTotalGames').textContent = `${totalGames} 次`;
+            
+            if (totalGames === 0) {
+                document.getElementById('statHighScore').textContent = '0 分';
+                document.getElementById('statAvgAccuracy').textContent = '0%';
+                container.innerHTML = `
+                    <div class="text-center py-12 text-slate-400">
+                        <i class="fa-regular fa-folder-open text-4xl mb-3 block"></i>
+                        <p class="font-bold text-slate-600">目前还没有任何闯关记录</p>
+                        <p class="text-xs mt-1">完成任意一个单元的练习后，成绩和错题会自动记录在这里！</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const highScore = Math.max(...gameRecords.map(r => r.score));
+            const avgAcc = Math.round(gameRecords.reduce((sum, r) => sum + r.accuracy, 0) / totalGames);
+            
+            document.getElementById('statHighScore').textContent = `${highScore} 分`;
+            document.getElementById('statAvgAccuracy').textContent = `${avgAcc}%`;
+
+            container.innerHTML = gameRecords.map((rec, index) => {
+                const badgeColor = rec.accuracy >= 80 ? 'bg-emerald-100 text-emerald-700' : (rec.accuracy >= 60 ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700');
+                const hasWrongs = rec.wrongList && rec.wrongList.length > 0;
+                
+                return `
+                    <div class="border border-slate-200 rounded-2xl p-4 bg-white shadow-xs hover:border-indigo-300 transition">
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 rounded-md bg-indigo-900 text-white text-xs font-bold">#${totalGames - index}</span>
+                                <span class="font-bold text-slate-900 text-sm sm:text-base">${rec.playerName}</span>
+                                <span class="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">${rec.playerClass}</span>
+                            </div>
+                            <span class="text-xs text-slate-400"><i class="fa-regular fa-clock mr-1"></i>${rec.timestamp}</span>
+                        </div>
+                        
+                        <div class="flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm bg-slate-50 p-2.5 rounded-xl">
+                            <span class="font-bold text-indigo-700">${rec.modeName}</span>
+                            <div class="flex items-center gap-3">
+                                <span>得分：<strong class="text-amber-600">${rec.score}</strong></span>
+                                <span>答对：<strong>${rec.correctCount}/${rec.totalCount}</strong></span>
+                                <span class="px-2 py-0.5 rounded-lg font-bold ${badgeColor}">${rec.accuracy}%</span>
+                            </div>
+                        </div>
+
+                        ${hasWrongs ? `
+                            <details class="mt-2.5 text-xs">
+                                <summary class="cursor-pointer font-bold text-rose-600 hover:text-rose-700 select-none">
+                                    <i class="fa-solid fa-caret-right mr-1"></i>查看本场错题记录 (${rec.wrongList.length} 题)
+                                </summary>
+                                <div class="mt-2 space-y-2 pl-2 border-l-2 border-rose-200">
+                                    ${rec.wrongList.map(w => `
+                                        <div class="bg-rose-50/60 p-2 rounded-lg">
+                                            <p class="font-bold text-slate-800">${w.question}</p>
+                                            <p class="text-rose-600">误选：${w.userAnswer} ｜ <span class="text-emerald-700 font-bold">正解：${w.correctAnswer}</span></p>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </details>
+                        ` : `
+                            <div class="mt-2 text-xs text-emerald-600 font-bold">
+                                <i class="fa-solid fa-circle-check mr-1"></i>全对通关，无错题！
+                            </div>
+                        `}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 复制文本格式成绩报告（方便发给老师或家长）
+        function copyRecordsReport() {
+            if (gameRecords.length === 0) {
+                showToast('暂无记录可复制');
+                return;
+            }
+            let reportText = `📊【马来西亚六年级历史闯关学习记录】\n累计挑战：${gameRecords.length} 次\n--------------------------\n`;
+            gameRecords.forEach((r, idx) => {
+                reportText += `${idx + 1}. [${r.timestamp}] ${r.playerName} (${r.playerClass})\n   关卡：${r.modeName}\n   成绩：${r.score}分 | 答对 ${r.correctCount}/${r.totalCount} (${r.accuracy}%)\n`;
+            });
+
+            const textarea = document.createElement('textarea');
+            textarea.value = reportText;
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showToast('📋 已复制全部学习记录，可直接粘贴发送！');
+            } catch (e) {
+                showToast('复制失败，请手动查看');
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function askClearRecords() {
+            if (gameRecords.length === 0) return;
+            showCustomDialog(
+                '确定要清空所有记录吗？',
+                '清空后将无法恢复以往的成绩和错题记录。',
+                [
+                    { text: '取消', class: 'bg-slate-200 text-slate-800', action: closeCustomDialog },
+                    { text: '确认清空', class: 'bg-rose-600 text-white', action: () => {
+                        gameRecords = [];
+                        saveRecords();
+                        renderRecordsModal();
+                        closeCustomDialog();
+                        showToast('已清空所有学习记录');
+                    }}
+                ]
+            );
+        }
+
+        // ==========================================
+        // 7. 自定义弹窗与提示框工具
+        // ==========================================
+        function showCustomDialog(title, message, buttons) {
+            document.getElementById('dialogTitle').textContent = title;
+            document.getElementById('dialogMessage').textContent = message;
+            const btnContainer = document.getElementById('dialogButtons');
+            btnContainer.innerHTML = '';
+            buttons.forEach(b => {
+                const btn = document.createElement('button');
+                btn.className = `px-4 py-2 rounded-xl text-sm font-bold transition ${b.class}`;
+                btn.textContent = b.text;
+                btn.onclick = b.action;
+                btnContainer.appendChild(btn);
+            });
+            document.getElementById('customDialog').classList.remove('hidden');
+        }
+
+        function closeCustomDialog() {
+            document.getElementById('customDialog').classList.add('hidden');
+        }
+
+        let toastTimer = null;
+        function showToast(msg) {
+            const el = document.getElementById('toastMsg');
+            el.textContent = msg;
+            el.classList.remove('opacity-0');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                el.classList.add('opacity-0');
+            }, 2500);
+        }
+    </script>
+</body>
+</html>
